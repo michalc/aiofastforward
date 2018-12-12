@@ -9,12 +9,15 @@ class MockedTime():
 
     def __enter__(self):
         self._original_call_later = self._loop.call_later
+        self._original_call_at = self._loop.call_at
         self._loop.call_later = self._mocked_call_later
+        self._loop.call_at = self._mocked_call_at
         self._queue = queue.PriorityQueue()
         self._time = 0
         return self
 
     def __exit__(self, *_, **__):
+        self._loop.call_at = self._original_call_at
         self._loop.call_later = self._original_call_later
 
     def forward(self, time_seconds):
@@ -25,6 +28,9 @@ class MockedTime():
 
     def _mocked_call_later(self, delay, callback, *args):
         time = self._time + delay
+        self._queue.put(TimedCallback(time, callback, args))
+
+    def _mocked_call_at(self, time, callback, *args):
         self._queue.put(TimedCallback(time, callback, args))
 
 
