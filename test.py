@@ -94,6 +94,20 @@ class TestCallAt(TestCase):
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
+    async def test_short_forward_not_trigger_callback(self):
+
+        loop = asyncio.get_running_loop()
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+            callback = Mock()
+            loop.call_at(2, callback, 0)
+
+            mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [])
+            mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_running_loop()
