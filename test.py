@@ -119,3 +119,21 @@ class TestCallAt(TestCase):
             pass
 
         self.assertEqual(loop.call_at, original_call_at)
+
+
+class TestTime(TestCase):
+
+    @async_test
+    async def test_forward_moves_time_forward(self):
+
+        loop = asyncio.get_running_loop()
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+            time_a = loop.time()
+            mocked_time.forward(1)
+            time_b = loop.time()
+            mocked_time.forward(2)
+            time_c = loop.time()
+
+            self.assertEqual(time_b, time_a + 1)
+            self.assertEqual(time_c, time_b + 2)
