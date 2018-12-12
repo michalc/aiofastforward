@@ -15,7 +15,7 @@ class MockedTime():
         return self
 
     def __exit__(self, *_, **__):
-        self._loop = self._original_call_later
+        self._loop.call_later = self._original_call_later
 
     def forward(self, time_seconds):
         self._time += time_seconds

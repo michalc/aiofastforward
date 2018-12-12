@@ -48,3 +48,16 @@ class TestCallLater(TestCase):
             self.assertEqual(callback.mock_calls, [call(0)])
             mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
+
+    @async_test
+    async def test_original_restored_on_exception(self):
+
+        loop = asyncio.get_running_loop()
+        original_call_later = loop.call_later
+        try:
+            with aiomocktime.MockedTime(loop) as mocked_time:
+                raise Exception()
+        except BaseException:
+            pass
+
+        self.assertEqual(loop.call_later, original_call_later)
