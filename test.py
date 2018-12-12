@@ -55,7 +55,7 @@ class TestCallLater(TestCase):
         loop = asyncio.get_running_loop()
         original_call_later = loop.call_later
         try:
-            with aiomocktime.MockedTime(loop) as mocked_time:
+            with aiomocktime.MockedTime(loop):
                 raise Exception()
         except BaseException:
             pass
