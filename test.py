@@ -137,3 +137,16 @@ class TestTime(TestCase):
 
             self.assertEqual(time_b, time_a + 1)
             self.assertEqual(time_c, time_b + 2)
+
+    @async_test
+    async def test_original_restored_on_exception(self):
+
+        loop = asyncio.get_running_loop()
+        original_time = loop.time
+        try:
+            with aiomocktime.MockedTime(loop):
+                raise Exception()
+        except BaseException:
+            pass
+
+        self.assertEqual(loop.time, original_time)
