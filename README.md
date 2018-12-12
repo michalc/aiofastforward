@@ -9,17 +9,19 @@ Provides patched versions of [loop.call_later](https://docs.python.org/3/library
 
 ```python
 # Production code
-async def my_function(loop, callback):
+async def schedule_callback(loop, callback):
     loop.call_later(1, callback, 0)
     loop.call_later(2, callback, 1)
 
 # Test code
-with aiomocktime.mock_time(loop) as mocked_time:
-    callback = Mock()
-    await my_function(loop, callback)
+loop = asyncio.get_running_loop()
 
-    mocked_time.flush(1)
-    callback.assert_called_with(0)
-    mocked_time.flush(1)
-    callback.assert_called_with(1)
+with aiomocktime.MockedTime(loop) as mocked_time:
+    callback = Mock()
+    await schedule_callback(loop, callback)
+
+    mocked_time.forward(1)
+    self.assertEqual(callback.mock_calls, [call(0)])
+    mocked_time.forward(1)
+    self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
