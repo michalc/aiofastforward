@@ -33,7 +33,7 @@ async def schedule_callback(loop, callback):
 
 # Test code
 from unittest.mock import Mock, call
-loop = asyncio.get_running_loop()
+loop = asyncio.get_event_loop()
 
 with aiofastfoward.FastForward(loop) as forward:
     callback = Mock()
@@ -56,11 +56,11 @@ async def sleeper(callback):
     callback(0)
 
 # Test code
-loop = asyncio.get_running_loop()
+loop = asyncio.get_event_loop()
 callback = Mock()
 
 with aiofastforward.FastForward(loop) as forward:
-    asyncio.create_task(sleeper())
+    asyncio.ensure_future(sleeper())
 
     await forward(3)
     self.assertEqual(callback.mock_calls, [call(0)])
