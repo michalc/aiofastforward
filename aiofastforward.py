@@ -36,7 +36,7 @@ class FastForward():
         while self._queue.queue and self._queue.queue[0].time <= target_time:
             callback = self._queue.get()
             self._time = callback.time
-            await callback()
+            callback()
 
             # Allows the callback to add more to the queue before this loop ends
             await self._original_sleep(0)
@@ -75,5 +75,5 @@ class TimedCallback():
     def __lt__(self, other):
         return self.time < other.time
 
-    async def __call__(self):
+    def __call__(self):
         self._callback(*self._args)
