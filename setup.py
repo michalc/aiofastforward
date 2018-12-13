@@ -14,7 +14,7 @@ setuptools.setup(
     description='Fast-forward time in asyncio Python by patching loop.time, loop.call_later, loop.call_at, and asyncio.sleep',
     long_description=long_description(),
     long_description_content_type='text/markdown',
-    url='https://github.com/michalc/aiofastfoward',
+    url='https://github.com/michalc/aiofastforward',
     py_modules=[
         'aiofastforward',
     ],
