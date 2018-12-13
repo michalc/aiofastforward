@@ -2,6 +2,7 @@
 
 Fast-forward time in asyncio Python by patching [loop.call_later](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later), [loop.call_at](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_at), [loop.time](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.time), and [asyncio.sleep](https://docs.python.org/3/library/asyncio-task.html#asyncio.sleep). This allows you to test asynchronous code synchronously.
 
+Inspired by [AngularJS $timeout.$flush](https://docs.angularjs.org/api/ngMock/service/$timeout#flush).
 
 ## Usage
 
