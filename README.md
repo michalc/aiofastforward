@@ -20,8 +20,8 @@ with aiomocktime.MockedTime(loop) as mocked_time:
     callback = Mock()
     await schedule_callback(loop, callback)
 
-    mocked_time.forward(1)
+    await mocked_time.forward(1)
     self.assertEqual(callback.mock_calls, [call(0)])
-    mocked_time.forward(1)
+    await mocked_time.forward(1)
     self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
