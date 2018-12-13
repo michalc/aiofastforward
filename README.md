@@ -10,7 +10,9 @@ Inspired by [AngularJS $timeout.$flush](https://docs.angularjs.org/api/ngMock/se
 Patching is done through a context manager, similar to [unittest.patch](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch).
 
 ```python
+import asyncio
 import aiofastfoward
+
 loop = asyncio.get_event_loop()
 with aiofastfoward.FastForward(loop) as forward:
     # Call production function(s)
