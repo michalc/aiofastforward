@@ -72,8 +72,9 @@ class TestCallAt(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            loop.call_at(1, callback, 0)
-            loop.call_at(1, callback, 1)
+            now = loop.time()
+            loop.call_at(now + 1, callback, 0)
+            loop.call_at(now + 1, callback, 1)
 
             await forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
@@ -85,8 +86,9 @@ class TestCallAt(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            loop.call_at(1, callback, 0)
-            loop.call_at(2, callback, 1)
+            now = loop.time()
+            loop.call_at(now + 1, callback, 0)
+            loop.call_at(now + 2, callback, 1)
 
             await forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
@@ -100,7 +102,8 @@ class TestCallAt(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            loop.call_at(2, callback, 0)
+            now = loop.time()
+            loop.call_at(now + 2, callback, 0)
 
             await forward(1)
             self.assertEqual(callback.mock_calls, [])
