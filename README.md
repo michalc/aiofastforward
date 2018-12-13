@@ -26,3 +26,24 @@ with aiofastfoward.FastForward(loop) as forward:
     await forward(1)
     self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
+
+
+### asyncio.sleep
+
+```python
+# Production code
+async def sleeper(callback):
+    await asyncio.sleep(1)
+    await asyncio.sleep(2)
+    callback(0)
+
+# Test code
+loop = asyncio.get_running_loop()
+callback = Mock()
+
+with aiofastforward.FastForward(loop) as forward:
+    asyncio.create_task(sleeper())
+
+    await forward(3)
+    self.assertEqual(callback.mock_calls, [call(0)])
+```
