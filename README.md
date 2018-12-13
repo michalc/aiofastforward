@@ -66,3 +66,26 @@ with aiofastfoward.FastForward(loop) as forward:
     await forward(1)
     self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
+
+### loop.call_at
+
+```python
+# Production code
+async def schedule_callback(loop, callback):
+    now = loop.time()
+    loop.call_at(now + 1, callback, 0)
+    loop.call_at(now + 2, callback, 1)
+
+# Test code
+from unittest.mock import Mock, call
+loop = asyncio.get_event_loop()
+
+with aiofastfoward.FastForward(loop) as forward:
+    callback = Mock()
+    await schedule_callback(loop, callback)
+
+    await forward(1)
+    self.assertEqual(callback.mock_calls, [call(0)])
+    await forward(1)
+    self.assertEqual(callback.mock_calls, [call(0), call(1)])
+```
