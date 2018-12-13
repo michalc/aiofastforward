@@ -35,6 +35,9 @@ class FastForward():
         while self._queue.queue and self._queue.queue[0].time <= target_time:
             callback = self._queue.get()
             self._time = callback.time
+            if callback.cancelled():
+                continue
+
             callback()
 
             # Allows the callback to add more to the queue before this loop ends
@@ -44,10 +47,12 @@ class FastForward():
 
     def _mocked_call_later(self, delay, callback, *args):
         time = self._time + delay
-        self._queue.put(TimedCallback(time, callback, args))
+        return self._mocked_call_at(time, callback, *args)
 
     def _mocked_call_at(self, time, callback, *args):
-        self._queue.put(TimedCallback(time, callback, args))
+        callback = TimedCallback(time, callback, args)
+        self._queue.put(callback)
+        return callback
 
     def _mocked_time(self):
         return self._time
@@ -70,9 +75,16 @@ class TimedCallback():
         self.time = time
         self._callback = callback
         self._args = args
+        self._cancelled = False
 
     def __lt__(self, other):
         return self.time < other.time
 
     def __call__(self):
         self._callback(*self._args)
+
+    def cancel(self):
+        self._cancelled = True
+
+    def cancelled(self):
+        return self._cancelled
