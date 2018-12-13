@@ -1,5 +1,6 @@
 import asyncio
 import queue
+import inspect
 
 
 class MockedTime():
@@ -11,9 +12,12 @@ class MockedTime():
         self._original_call_later = self._loop.call_later
         self._original_call_at = self._loop.call_at
         self._original_time = self._loop.time
+        self._original_sleep = asyncio.sleep
         self._loop.call_later = self._mocked_call_later
         self._loop.call_at = self._mocked_call_at
         self._loop.time = self._mocked_time
+        asyncio.sleep = self._maybe_mocked_sleep
+
         self._queue = queue.PriorityQueue()
         self._time = 0
         return self
@@ -22,12 +26,22 @@ class MockedTime():
         self._loop.call_at = self._original_call_at
         self._loop.call_later = self._original_call_later
         self._loop.time = self._original_time
+        asyncio.sleep = self._original_sleep
 
-    def forward(self, time_seconds):
-        self._time += time_seconds
-        while self._queue.queue and self._queue.queue[0].time <= self._time:
-            timed_callback = self._queue.get()
-            timed_callback.callback(*timed_callback.args)
+    async def forward(self, time_seconds):
+        # Allows recently created tasks to run and schedule a sleep
+        await self._original_sleep(0)
+
+        target_time = self._time + time_seconds
+        while self._queue.queue and self._queue.queue[0].time <= target_time:
+            callback = self._queue.get()
+            self._time = callback.time
+            await callback()
+
+            # Allows the callback to add more to the queue before this loop ends
+            await self._original_sleep(0)
+
+        self._time = target_time
 
     def _mocked_call_later(self, delay, callback, *args):
         time = self._time + delay
@@ -39,13 +53,27 @@ class MockedTime():
     def _mocked_time(self):
         return self._time
 
+    async def _maybe_mocked_sleep(self, delay):
+        func = \
+            self._mocked_sleep if asyncio.get_event_loop() == self._loop else \
+            asyncio.sleep
+        await func(delay)
+
+    async def _mocked_sleep(self, delay):
+        event = asyncio.Event()
+        self._mocked_call_later(delay, event.set)
+        await event.wait()
+
 
 class TimedCallback():
 
     def __init__(self, time, callback, args):
         self.time = time
-        self.callback = callback
-        self.args = args
+        self._callback = callback
+        self._args = args
 
     def __lt__(self, other):
         return self.time < other.time
+
+    async def __call__(self):
+        self._callback(*self._args)

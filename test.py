@@ -31,7 +31,7 @@ class TestCallLater(TestCase):
             loop.call_later(1, callback, 0)
             loop.call_later(1, callback, 1)
 
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -44,9 +44,9 @@ class TestCallLater(TestCase):
             loop.call_later(1, callback, 0)
             loop.call_later(2, callback, 1)
 
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -75,7 +75,7 @@ class TestCallAt(TestCase):
             loop.call_at(1, callback, 0)
             loop.call_at(1, callback, 1)
 
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -88,9 +88,9 @@ class TestCallAt(TestCase):
             loop.call_at(1, callback, 0)
             loop.call_at(2, callback, 1)
 
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -102,9 +102,9 @@ class TestCallAt(TestCase):
             callback = Mock()
             loop.call_at(2, callback, 0)
 
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [])
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
 
     @async_test
@@ -130,9 +130,9 @@ class TestTime(TestCase):
 
         with aiomocktime.MockedTime(loop) as mocked_time:
             time_a = loop.time()
-            mocked_time.forward(1)
+            await mocked_time.forward(1)
             time_b = loop.time()
-            mocked_time.forward(2)
+            await mocked_time.forward(2)
             time_c = loop.time()
 
             self.assertEqual(time_b, time_a + 1)
@@ -150,3 +150,109 @@ class TestTime(TestCase):
             pass
 
         self.assertEqual(loop.time, original_time)
+
+
+class TestSleep(TestCase):
+
+    @async_test
+    async def test_is_cumulative(self):
+
+        loop = asyncio.get_running_loop()
+        callback = Mock()
+
+        async def sleeper():
+            callback(0)
+            await asyncio.sleep(1)
+            callback(1)
+            await asyncio.sleep(2)
+            callback(2)
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+
+            asyncio.create_task(sleeper())
+
+            await mocked_time.forward(0)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+            await mocked_time.forward(0)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+            await mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [call(0), call(1)])
+
+            await mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [call(0), call(1)])
+
+            await mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [call(0), call(1), call(2)])
+
+    @async_test
+    async def test_sleep_can_resolve_after_yield(self):
+
+        loop = asyncio.get_running_loop()
+        callback = Mock()
+        event = asyncio.Event()
+
+        async def sleeper():
+            await event.wait()
+            await asyncio.sleep(1)
+            callback(0)
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+            callback = Mock()
+            asyncio.create_task(sleeper())
+
+            event.set()
+            await mocked_time.forward(0)
+            self.assertEqual(callback.mock_calls, [])
+
+            await mocked_time.forward(1)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+    @async_test
+    async def test_one_call_can_resolve_multiple_sleeps(self):
+
+        loop = asyncio.get_running_loop()
+        callback = Mock()
+
+        async def sleeper():
+            await asyncio.sleep(1)
+            await asyncio.sleep(2)
+            callback(0)
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+            asyncio.create_task(sleeper())
+
+            await mocked_time.forward(3)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+    @async_test
+    async def test_multiple_calls_can_resolve_multiple_sleeps(self):
+
+        loop = asyncio.get_running_loop()
+        callback = Mock()
+
+        async def sleeper():
+            await asyncio.sleep(3)
+            await asyncio.sleep(1)
+            callback(0)
+
+        with aiomocktime.MockedTime(loop) as mocked_time:
+            asyncio.create_task(sleeper())
+
+            await mocked_time.forward(2)
+            self.assertEqual(callback.mock_calls, [])
+            await mocked_time.forward(2)
+            self.assertEqual(callback.mock_calls, [call(0)])
+
+    @async_test
+    async def test_original_restored_on_exception(self):
+
+        original_sleep = asyncio.sleep
+        try:
+            with aiomocktime.MockedTime(loop):
+                raise Exception()
+        except BaseException:
+            pass
+
+        self.assertEqual(asyncio.sleep, original_sleep)
