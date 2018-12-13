@@ -55,7 +55,7 @@ class FastForward():
     async def _maybe_mocked_sleep(self, delay):
         func = \
             self._mocked_sleep if asyncio.get_event_loop() == self._loop else \
-            asyncio.sleep
+            self._original_sleep
         await func(delay)
 
     async def _mocked_sleep(self, delay):

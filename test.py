@@ -1,11 +1,15 @@
 import asyncio
 import unittest
+from threading import (
+    Thread,
+)
 from unittest import (
     TestCase,
 )
 from unittest.mock import (
     Mock,
     call,
+    patch,
 )
 
 import aiofastforward
@@ -259,3 +263,33 @@ class TestSleep(TestCase):
             pass
 
         self.assertEqual(asyncio.sleep, original_sleep)
+
+    @async_test
+    async def test_only_patches_specified_loop(self):
+
+        loop = asyncio.get_event_loop()
+
+        sleep_call = None
+        async def dummy_sleep(_sleep_call):
+            nonlocal sleep_call
+            sleep_call = _sleep_call
+
+        original_sleep = asyncio.sleep
+        asyncio.sleep = dummy_sleep
+
+        def run_sleep():
+            other_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(other_loop)
+            other_loop.run_until_complete(asyncio.sleep(1))
+
+        try:
+            with aiofastforward.FastForward(loop) as forward:
+                thread = Thread(target=run_sleep)
+                thread.start()
+
+                # This does block the event loop in the test, but briefly
+                thread.join()
+
+                self.assertEqual(sleep_call, 1)
+        finally:
+            asyncio.sleep = original_sleep
