@@ -5,6 +5,13 @@ Fast-forward time in asyncio Python by patching [loop.call_later](https://docs.p
 Inspired by [AngularJS $timeout.$flush](https://docs.angularjs.org/api/ngMock/service/$timeout#flush).
 
 
+## Installation
+
+```bash
+pip install aiofastforward
+```
+
+
 ## Usage
 
 Patching is done through a context manager, similar to [unittest.patch](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch).
