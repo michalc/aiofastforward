@@ -40,7 +40,6 @@ with aiofastfoward.FastForward(loop) as forward:
 ```python
 # Production code
 async def sleeper(callback):
-    await asyncio.sleep(1)
     await asyncio.sleep(2)
     callback(0)
 
@@ -51,7 +50,9 @@ callback = Mock()
 with aiofastforward.FastForward(loop) as forward:
     asyncio.ensure_future(sleeper())
 
-    await forward(3)
+    await forward(1)
+    self.assertEqual(callback.mock_calls, [])
+    await forward(1)
     self.assertEqual(callback.mock_calls, [call(0)])
 ```
 
