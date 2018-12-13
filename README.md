@@ -1,4 +1,4 @@
-# aiofastfoward [![CircleCI](https://circleci.com/gh/michalc/aiofastforward.svg?style=svg)](https://circleci.com/gh/michalc/aiofastforward) [![Maintainability](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/maintainability)](https://codeclimate.com/github/michalc/aiofastforward/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/test_coverage)](https://codeclimate.com/github/michalc/aiofastforward/test_coverage)
+# aiofastforward [![CircleCI](https://circleci.com/gh/michalc/aiofastforward.svg?style=svg)](https://circleci.com/gh/michalc/aiofastforward) [![Maintainability](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/maintainability)](https://codeclimate.com/github/michalc/aiofastforward/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/test_coverage)](https://codeclimate.com/github/michalc/aiofastforward/test_coverage)
 
 Fast-forward time in asyncio Python by patching [loop.call_later](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later), [loop.call_at](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_at), [loop.time](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.time), and [asyncio.sleep](https://docs.python.org/3/library/asyncio-task.html#asyncio.sleep). This allows you to test asynchronous code synchronously.
 
@@ -18,10 +18,10 @@ Patching is done through a context manager, similar to [unittest.patch](https://
 
 ```python
 import asyncio
-import aiofastfoward
+import aiofastforward
 
 loop = asyncio.get_event_loop()
-with aiofastfoward.FastForward(loop) as forward:
+with aiofastforward.FastForward(loop) as forward:
     # Call production function(s)
     # ...
 
@@ -69,7 +69,7 @@ async def schedule_callback(loop, callback):
 from unittest.mock import Mock, call
 loop = asyncio.get_event_loop()
 
-with aiofastfoward.FastForward(loop) as forward:
+with aiofastforward.FastForward(loop) as forward:
     callback = Mock()
     await schedule_callback(loop, callback)
 
@@ -92,7 +92,7 @@ async def schedule_callback(loop, callback):
 from unittest.mock import Mock, call
 loop = asyncio.get_event_loop()
 
-with aiofastfoward.FastForward(loop) as forward:
+with aiofastforward.FastForward(loop) as forward:
     callback = Mock()
     await schedule_callback(loop, callback)
 
