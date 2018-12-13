@@ -1,6 +1,5 @@
 import asyncio
 import queue
-import inspect
 
 
 class FastForward():
