@@ -25,6 +25,9 @@ with aiofastfoward.FastForward(loop) as forward:
     # ...
 ```
 
+
+## Examples
+
 ### asyncio.sleep
 
 ```python
