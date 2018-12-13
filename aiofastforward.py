@@ -3,7 +3,7 @@ import queue
 import inspect
 
 
-class MockedTime():
+class FastForward():
 
     def __init__(self, loop):
         self._loop = loop
@@ -28,7 +28,7 @@ class MockedTime():
         self._loop.time = self._original_time
         asyncio.sleep = self._original_sleep
 
-    async def forward(self, time_seconds):
+    async def __call__(self, time_seconds):
         # Allows recently created tasks to run and schedule a sleep
         await self._original_sleep(0)
 
