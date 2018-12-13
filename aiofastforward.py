@@ -35,9 +35,6 @@ class FastForward():
         while self._queue.queue and self._queue.queue[0].time <= target_time:
             callback = self._queue.get()
             self._time = callback.time
-            if callback.cancelled():
-                continue
-
             callback()
 
             # Allows the callback to add more to the queue before this loop ends
@@ -85,6 +82,8 @@ class TimedCallback():
 
     def cancel(self):
         self._cancelled = True
+        self._callback = lambda: None
+        self._args = ()
 
     def cancelled(self):
         return self._cancelled
