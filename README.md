@@ -4,7 +4,24 @@ Fast-forward time in asyncio Python by patching [loop.call_later](https://docs.p
 
 Inspired by [AngularJS $timeout.$flush](https://docs.angularjs.org/api/ngMock/service/$timeout#flush).
 
+
 ## Usage
+
+Patching is done through a context manager, similar to [unittest.patch](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch).
+
+```python
+import aiofastfoward
+loop = asyncio.get_event_loop()
+with aiofastfoward.FastForward(loop) as forward:
+    # Call production function(s)
+    # ...
+
+    # Fast-forward time 1 second.
+    await forward(1)
+
+    # More production functions or assertions
+    # ...
+```
 
 ### loop.call_later
 
