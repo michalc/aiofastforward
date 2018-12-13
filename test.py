@@ -286,6 +286,7 @@ class TestSleep(TestCase):
     @async_test
     async def test_original_restored_on_exception(self):
 
+        loop = asyncio.get_event_loop()
         original_sleep = asyncio.sleep
         try:
             with aiofastforward.FastForward(loop):
