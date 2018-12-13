@@ -14,6 +14,7 @@ async def schedule_callback(loop, callback):
     loop.call_later(2, callback, 1)
 
 # Test code
+from unittest.mock import Mock, call
 loop = asyncio.get_running_loop()
 
 with aiofastfoward.FastForward(loop) as forward:
