@@ -44,6 +44,7 @@ async def sleeper(callback):
     callback(0)
 
 # Test code
+from unittest.mock import Mock, call
 loop = asyncio.get_event_loop()
 callback = Mock()
 
