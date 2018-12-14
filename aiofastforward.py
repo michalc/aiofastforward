@@ -27,14 +27,14 @@ class FastForward():
         self._loop.time = self._original_time
         asyncio.sleep = self._original_sleep
 
-    async def __call__(self, time_seconds):
+    async def __call__(self, forward_seconds):
         # Allows recently created tasks to run and schedule a sleep
         await self._original_sleep(0)
 
-        target_time = self._time + time_seconds
-        while self._queue.queue and self._queue.queue[0].time <= target_time:
+        target_time = self._time + forward_seconds
+        while self._queue.queue and self._queue.queue[0].when <= target_time:
             callback = self._queue.get()
-            self._time = callback.time
+            self._time = callback.when
             callback()
 
             # Allows the callback to add more to the queue before this loop ends
@@ -43,11 +43,11 @@ class FastForward():
         self._time = target_time
 
     def _mocked_call_later(self, delay, callback, *args):
-        time = self._time + delay
-        return self._mocked_call_at(time, callback, *args)
+        when = self._time + delay
+        return self._mocked_call_at(when, callback, *args)
 
-    def _mocked_call_at(self, time, callback, *args):
-        callback = TimedCallback(time, callback, args)
+    def _mocked_call_at(self, when, callback, *args):
+        callback = TimedCallback(when, callback, args)
         self._queue.put(callback)
         return callback
 
@@ -68,14 +68,14 @@ class FastForward():
 
 class TimedCallback():
 
-    def __init__(self, time, callback, args):
-        self.time = time
+    def __init__(self, when, callback, args):
+        self.when = when
         self._callback = callback
         self._args = args
         self._cancelled = False
 
     def __lt__(self, other):
-        return self.time < other.time
+        return self.when < other.when
 
     def __call__(self):
         self._callback(*self._args)
