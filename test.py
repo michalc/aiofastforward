@@ -83,7 +83,7 @@ class TestCallLater(TestCase):
 
             await forward(1)
             self.assertEqual(callback.mock_calls, [])
-            
+
     @async_test
     async def test_original_restored_on_exception(self):
 
@@ -325,3 +325,100 @@ class TestSleep(TestCase):
                 self.assertEqual(sleep_call, 1)
         finally:
             asyncio.sleep = original_sleep
+
+
+# contextvars introduced in Python 3.7
+try:
+    import contextvars
+except ImportError:
+    contextvars = None
+
+if contextvars:
+    context_var = contextvars.ContextVar('var')
+
+    class TestCallLaterContext(TestCase):
+
+        @async_test
+        async def test_if_context_not_passed_current_context_used(self):
+
+            loop = asyncio.get_event_loop()
+
+            context_var_callback_value = None
+            def callback():
+                nonlocal context_var_callback_value
+                context_var_callback_value = context_var.get()
+                context_var.set('callback-value')
+
+            with aiofastforward.FastForward(loop) as forward:
+                context_var.set('initial-value')
+                loop.call_later(1, callback)
+
+                await forward(1)
+
+                self.assertEqual(context_var_callback_value, 'initial-value')
+                self.assertEqual(context_var.get(), 'callback-value')
+
+        @async_test
+        async def test_if_context_passed_is_used(self):
+
+            loop = asyncio.get_event_loop()
+
+            context_var_callback_value = None
+            def callback():
+                nonlocal context_var_callback_value
+                context_var_callback_value = context_var.get()
+                context_var.set('callback-value')
+
+            with aiofastforward.FastForward(loop) as forward:
+                context_var.set('initial-value')
+                loop.call_later(1, callback, context=contextvars.copy_context())
+
+                await forward(1)
+
+                self.assertEqual(context_var_callback_value, 'initial-value')
+                self.assertEqual(context_var.get(), 'initial-value')
+
+
+    class TestCallAtContext(TestCase):
+
+        @async_test
+        async def test_if_context_not_passed_current_context_used(self):
+
+            loop = asyncio.get_event_loop()
+
+            context_var_callback_value = None
+            def callback():
+                nonlocal context_var_callback_value
+                context_var_callback_value = context_var.get()
+                context_var.set('callback-value')
+
+            with aiofastforward.FastForward(loop) as forward:
+                context_var.set('initial-value')
+                now = loop.time()
+                loop.call_at(now + 1, callback)
+
+                await forward(1)
+
+                self.assertEqual(context_var_callback_value, 'initial-value')
+                self.assertEqual(context_var.get(), 'callback-value')
+
+        @async_test
+        async def test_if_context_passed_is_used(self):
+
+            loop = asyncio.get_event_loop()
+
+            context_var_callback_value = None
+            def callback():
+                nonlocal context_var_callback_value
+                context_var_callback_value = context_var.get()
+                context_var.set('callback-value')
+
+            with aiofastforward.FastForward(loop) as forward:
+                context_var.set('initial-value')
+                now = loop.time()
+                loop.call_at(now + 1, callback, context=contextvars.copy_context())
+
+                await forward(1)
+
+                self.assertEqual(context_var_callback_value, 'initial-value')
+                self.assertEqual(context_var.get(), 'initial-value')
