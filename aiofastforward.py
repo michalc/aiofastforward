@@ -2,17 +2,14 @@ import asyncio
 import queue
 
 try:
-    from contextvars import (
-        Context,
-        copy_context,
-    )
-except ImportError:
-    class Context():
-        def run(self, func, *args):
-            return func(*args)
+    import contextvars
 
-    def copy_context():
-        return Context()
+    def create_callback(when, callback, args, loop, context):
+        return asyncio.TimerHandle(when, callback, args, loop, context=context)
+
+except ImportError:
+    def create_callback(when, callback, args, loop, _):
+        return asyncio.TimerHandle(when, callback, args, loop)
 
 
 class FastForward():
@@ -45,10 +42,12 @@ class FastForward():
         await _yield(self._loop)
 
         target_time = self._time + forward_seconds
-        while self._queue.queue and self._queue.queue[0].when <= target_time:
+        while self._queue.queue and self._queue.queue[0]._when <= target_time:
             callback = self._queue.get()
-            self._time = callback.when
-            callback()
+            self._time = callback._when
+
+            if not callback._cancelled:
+                callback._run()
 
             # Allows the callback to add more to the queue before this loop ends
             await _yield(self._loop)
@@ -60,11 +59,7 @@ class FastForward():
         return self._mocked_call_at(when, callback, *args, context=context)
 
     def _mocked_call_at(self, when, callback, *args, context=None):
-        non_none_context = \
-            context if context is not None else \
-            copy_context()
-
-        callback = MockTimerHandle(when, callback, args, non_none_context)
+        callback = create_callback(when, callback, args, self._loop, context)
         self._queue.put(callback)
         return callback
 
@@ -81,31 +76,6 @@ class FastForward():
         future = asyncio.Future()
         self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
         return await future
-
-
-class MockTimerHandle(asyncio.TimerHandle):
-
-    def __init__(self, when, callback, args, context):
-        self.when = when
-        self._callback = callback
-        self._args = args
-        self._context = context
-        self._cancelled = False
-
-    def __lt__(self, other):
-        return self.when < other.when
-
-    def __call__(self):
-        self._context.run(self._callback, *self._args)
-
-    def cancel(self):
-        self._cancelled = True
-        self._callback = lambda: None
-        self._args = ()
-        self._context = Context()
-
-    def cancelled(self):
-        return self._cancelled
 
 
 def _set_result_unless_cancelled(future, result):
