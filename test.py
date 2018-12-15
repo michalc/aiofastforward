@@ -294,6 +294,22 @@ class TestSleep(TestCase):
             self.assertEqual(callback.mock_calls, [call(0)])
 
     @async_test
+    async def test_returns_result(self):
+
+        loop = asyncio.get_event_loop()
+        callback = Mock()
+
+        async def sleeper():
+            value = await asyncio.sleep(1, result='value')
+            callback(value)
+
+        with aiofastforward.FastForward(loop) as forward:
+            asyncio.ensure_future(sleeper())
+
+            await forward(1)
+            self.assertEqual(callback.mock_calls, [call('value')])
+
+    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
@@ -312,7 +328,7 @@ class TestSleep(TestCase):
         loop = asyncio.get_event_loop()
 
         sleep_call = None
-        async def dummy_sleep(_sleep_call):
+        async def dummy_sleep(_sleep_call, result=None):
             nonlocal sleep_call
             sleep_call = _sleep_call
 

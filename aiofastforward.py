@@ -54,16 +54,16 @@ class FastForward():
     def _mocked_time(self):
         return self._time
 
-    async def _maybe_mocked_sleep(self, delay):
+    async def _maybe_mocked_sleep(self, delay, result=None):
         func = \
             self._mocked_sleep if asyncio.get_event_loop() == self._loop else \
             self._original_sleep
-        await func(delay)
+        return await func(delay, result)
 
-    async def _mocked_sleep(self, delay):
-        event = asyncio.Event()
-        self._mocked_call_later(delay, event.set)
-        await event.wait()
+    async def _mocked_sleep(self, delay, result):
+        future = asyncio.Future()
+        self._mocked_call_later(delay, future.set_result, result)
+        return await future
 
 
 class TimedCallback():
