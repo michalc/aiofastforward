@@ -77,9 +77,9 @@ class TestCallLater(TestCase):
             callback = Mock()
             handle = loop.call_later(1, callback, 0)
 
-            self.assertEqual(handle.cancelled(), False)
+            self.assertEqual(handle._cancelled, False)
             handle.cancel()
-            self.assertEqual(handle.cancelled(), True)
+            self.assertEqual(handle._cancelled, True)
 
             await forward(1)
             self.assertEqual(callback.mock_calls, [])
