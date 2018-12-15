@@ -29,7 +29,7 @@ class FastForward():
 
     async def __call__(self, forward_seconds):
         # Allows recently created tasks to run and schedule a sleep
-        await self._original_sleep(0)
+        await _yield(self._loop)
 
         target_time = self._time + forward_seconds
         while self._queue.queue and self._queue.queue[0].when <= target_time:
@@ -38,7 +38,7 @@ class FastForward():
             callback()
 
             # Allows the callback to add more to the queue before this loop ends
-            await self._original_sleep(0)
+            await _yield(self._loop)
 
         self._time = target_time
 
@@ -96,3 +96,11 @@ class TimedCallback():
 
     def cancelled(self):
         return self._cancelled
+
+
+async def _yield(loop):
+    # Python 3.5.0+compatible way of yielding to another task
+    # (3.5.1 supports simpler ways, e.g. with asyncio.sleep(0))
+    future = asyncio.Future()
+    loop.call_soon(future.set_result, None)
+    await future

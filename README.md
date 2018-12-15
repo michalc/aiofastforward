@@ -44,7 +44,7 @@ There is overlap in functionality: both support fast-forwarding time in terms of
 
 ClockedTestCase does have an advantage over FastForward, which may be important for some uses:
 
-- ClockedTestCase supports Python 3.4 onwards, while FastForward supports Python 3.5.1 onwards.
+- ClockedTestCase supports Python 3.4 onwards, while FastForward supports Python 3.5.0 onwards.
 
 
 ## Examples
