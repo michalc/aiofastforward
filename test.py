@@ -85,6 +85,16 @@ class TestCallLater(TestCase):
             self.assertEqual(callback.mock_calls, [])
 
     @async_test
+    async def test_handle_is_timerhandle(self):
+
+        loop = asyncio.get_event_loop()
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            handle = loop.call_later(1, callback, 0)
+            self.assertTrue(isinstance(handle, asyncio.TimerHandle))
+
+    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()

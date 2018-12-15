@@ -64,7 +64,7 @@ class FastForward():
             context if context is not None else \
             copy_context()
 
-        callback = TimedCallback(when, callback, args, non_none_context)
+        callback = MockTimerHandle(when, callback, args, non_none_context)
         self._queue.put(callback)
         return callback
 
@@ -83,7 +83,7 @@ class FastForward():
         return await future
 
 
-class TimedCallback():
+class MockTimerHandle(asyncio.TimerHandle):
 
     def __init__(self, when, callback, args, context):
         self.when = when
