@@ -18,7 +18,7 @@ setuptools.setup(
     py_modules=[
         'aiofastforward',
     ],
-    python_requires='>=3.5.1',
+    python_requires='>=3.5.0',
     test_suite='test',
     classifiers=[
         'Programming Language :: Python :: 3',
