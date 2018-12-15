@@ -1,6 +1,19 @@
 import asyncio
 import queue
 
+try:
+    from contextvars import (
+        Context,
+        copy_context,
+    )
+except ImportError:
+    class Context():
+        def run(self, func, *args):
+            return func(*args)
+
+    def copy_context():
+        return Context()
+
 
 class FastForward():
 
@@ -47,7 +60,11 @@ class FastForward():
         return self._mocked_call_at(when, callback, *args, context=context)
 
     def _mocked_call_at(self, when, callback, *args, context=None):
-        callback = TimedCallback(when, callback, args, context)
+        non_none_context = \
+            context if context is not None else \
+            copy_context()
+
+        callback = TimedCallback(when, callback, args, non_none_context)
         self._queue.put(callback)
         return callback
 
@@ -79,17 +96,13 @@ class TimedCallback():
         return self.when < other.when
 
     def __call__(self):
-        run = \
-            self._context.run if self._context is not None else \
-            lambda func, *args: func(*args)
-
-        run(self._callback, *self._args)
+        self._context.run(self._callback, *self._args)
 
     def cancel(self):
         self._cancelled = True
         self._callback = lambda: None
         self._args = ()
-        self._context = None
+        self._context = Context()
 
     def cancelled(self):
         return self._cancelled
