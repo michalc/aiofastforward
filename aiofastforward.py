@@ -62,7 +62,7 @@ class FastForward():
 
     async def _mocked_sleep(self, delay, result):
         future = asyncio.Future()
-        self._mocked_call_later(delay, future.set_result, result)
+        self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
         return await future
 
 
@@ -96,6 +96,11 @@ class TimedCallback():
 
     def cancelled(self):
         return self._cancelled
+
+
+def _set_result_unless_cancelled(future, result):
+    if not future.cancelled():
+        future.set_result(result)
 
 
 async def _yield(loop):
