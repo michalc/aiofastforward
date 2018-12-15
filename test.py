@@ -387,7 +387,7 @@ if contextvars:
     class TestCallLaterContext(TestCase):
 
         @async_test
-        async def test_if_context_not_passed_current_context_used(self):
+        async def test_if_context_not_passed_copy_of_current_context_used(self):
 
             loop = asyncio.get_event_loop()
 
@@ -404,7 +404,7 @@ if contextvars:
                 await forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
-                self.assertEqual(context_var.get(), 'callback-value')
+                self.assertEqual(context_var.get(), 'initial-value')
 
         @async_test
         async def test_if_context_passed_is_used(self):
@@ -419,18 +419,20 @@ if contextvars:
 
             with aiofastforward.FastForward(loop) as forward:
                 context_var.set('initial-value')
-                loop.call_later(1, callback, context=contextvars.copy_context())
+                context = contextvars.copy_context()
+                context_var.set('modified-value')
+                loop.call_later(1, callback, context=context)
 
                 await forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
-                self.assertEqual(context_var.get(), 'initial-value')
+                self.assertEqual(context_var.get(), 'modified-value')
 
 
     class TestCallAtContext(TestCase):
 
         @async_test
-        async def test_if_context_not_passed_current_context_used(self):
+        async def test_if_context_not_passed_copy_of_current_context_used(self):
 
             loop = asyncio.get_event_loop()
 
@@ -448,7 +450,7 @@ if contextvars:
                 await forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
-                self.assertEqual(context_var.get(), 'callback-value')
+                self.assertEqual(context_var.get(), 'initial-value')
 
         @async_test
         async def test_if_context_passed_is_used(self):
@@ -463,10 +465,12 @@ if contextvars:
 
             with aiofastforward.FastForward(loop) as forward:
                 context_var.set('initial-value')
+                context = contextvars.copy_context()
+                context_var.set('modified-value')
                 now = loop.time()
-                loop.call_at(now + 1, callback, context=contextvars.copy_context())
+                loop.call_at(now + 1, callback, context=context)
 
                 await forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
-                self.assertEqual(context_var.get(), 'initial-value')
+                self.assertEqual(context_var.get(), 'modified-value')
