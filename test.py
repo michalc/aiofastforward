@@ -278,11 +278,14 @@ class TestSleep(TestCase):
     async def test_cancellation(self):
 
         loop = asyncio.get_event_loop()
-        callback = Mock()
 
+        cancelled = False
         async def sleeper():
-            await asyncio.sleep(1)
-            callback(0)
+            nonlocal cancelled
+            try:
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                cancelled = True
 
         with aiofastforward.FastForward(loop) as forward:
             task = asyncio.ensure_future(sleeper())
@@ -291,7 +294,7 @@ class TestSleep(TestCase):
             task.cancel()
             await forward(1)
 
-            self.assertEqual(callback.mock_calls, [])
+            self.assertEqual(cancelled, True)
 
     @async_test
     async def test_multiple_calls_can_resolve_multiple_sleeps(self):
