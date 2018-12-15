@@ -8,7 +8,7 @@ def long_description():
 
 setuptools.setup(
     name='aiofastforward',
-    version='0.0.13',
+    version='0.0.14',
     author='Michal Charemza',
     author_email='michal@charemza.name',
     description='Fast-forward time in asyncio Python by patching loop.time, loop.call_later, loop.call_at, and asyncio.sleep',
