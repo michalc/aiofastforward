@@ -18,7 +18,7 @@ class FastForward():
         asyncio.sleep = self._maybe_mocked_sleep
 
         self._queue = queue.PriorityQueue()
-        self._time = 0
+        self._time = 0.0
         return self
 
     def __exit__(self, *_, **__):

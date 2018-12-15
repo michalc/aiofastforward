@@ -162,6 +162,16 @@ class TestCallAt(TestCase):
 class TestTime(TestCase):
 
     @async_test
+    async def test_time_is_float(self):
+
+        loop = asyncio.get_event_loop()
+
+        with aiofastforward.FastForward(loop) as forward:
+            self.assertTrue(isinstance(loop.time(), float))
+            await forward(1)
+            self.assertTrue(isinstance(loop.time(), float))
+
+    @async_test
     async def test_forward_moves_time_forward(self):
 
         loop = asyncio.get_event_loop()
