@@ -287,6 +287,7 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             task = asyncio.ensure_future(sleeper())
 
+            await forward(0)
             task.cancel()
             await forward(1)
 
