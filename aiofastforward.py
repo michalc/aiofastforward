@@ -42,12 +42,12 @@ class FastForward():
 
         self._time = target_time
 
-    def _mocked_call_later(self, delay, callback, *args):
+    def _mocked_call_later(self, delay, callback, *args, context=None):
         when = self._time + delay
-        return self._mocked_call_at(when, callback, *args)
+        return self._mocked_call_at(when, callback, *args, context=context)
 
-    def _mocked_call_at(self, when, callback, *args):
-        callback = TimedCallback(when, callback, args)
+    def _mocked_call_at(self, when, callback, *args, context=None):
+        callback = TimedCallback(when, callback, args, context)
         self._queue.put(callback)
         return callback
 
@@ -68,22 +68,31 @@ class FastForward():
 
 class TimedCallback():
 
-    def __init__(self, when, callback, args):
+    def __init__(self, when, callback, args, context):
         self.when = when
         self._callback = callback
         self._args = args
+        self._context = context
         self._cancelled = False
 
     def __lt__(self, other):
         return self.when < other.when
 
     def __call__(self):
-        self._callback(*self._args)
+        def run_current_context(func, *args):
+            return func(*args)
+
+        run = \
+            self._context.run if self._context is not None else \
+            run_current_context
+
+        run(self._callback, *self._args)
 
     def cancel(self):
         self._cancelled = True
         self._callback = lambda: None
         self._args = ()
+        self._context = None
 
     def cancelled(self):
         return self._cancelled
