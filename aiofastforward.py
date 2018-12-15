@@ -79,12 +79,9 @@ class TimedCallback():
         return self.when < other.when
 
     def __call__(self):
-        def run_current_context(func, *args):
-            return func(*args)
-
         run = \
             self._context.run if self._context is not None else \
-            run_current_context
+            lambda func, *args: func(*args)
 
         run(self._callback, *self._args)
 
