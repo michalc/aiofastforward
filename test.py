@@ -322,10 +322,12 @@ class TestSleep(TestCase):
     async def test_cancellation(self):
 
         loop = asyncio.get_event_loop()
+        running = asyncio.Event()
         cancelled = asyncio.Event()
 
         async def sleeper():
             try:
+                running.set()
                 await asyncio.sleep(1)
             except asyncio.CancelledError:
                 cancelled.set()
@@ -334,9 +336,11 @@ class TestSleep(TestCase):
             task = asyncio.ensure_future(sleeper())
 
             await forward(0)
-            task.cancel()
-            await forward(1)
+            await running.wait()
 
+            task.cancel()
+
+            await forward(1)
             await cancelled.wait()
 
     @async_test
