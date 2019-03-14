@@ -43,9 +43,6 @@ class FastForward():
         await self._run()
 
     async def _run(self):
-        # Allows recently created tasks to run and schedule a sleep
-        await _yield(self._loop)
-
         while self._queue.queue and self._queue.queue[0]._when <= self._target_time:
             callback = self._queue.get()
             self._time = callback._when
@@ -81,11 +78,3 @@ class FastForward():
 def _set_result_unless_cancelled(future, result):
     if not future.cancelled():
         future.set_result(result)
-
-
-async def _yield(loop):
-    # Python 3.5.0+compatible way of yielding to another task
-    # (3.5.1 supports simpler ways, e.g. with asyncio.sleep(0))
-    future = asyncio.Future()
-    loop.call_soon(future.set_result, None)
-    await future
