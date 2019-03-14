@@ -182,9 +182,15 @@ class TestTime(TestCase):
             self.assertTrue(isinstance(loop.time(), float))
 
     @async_test
-    async def test_forward_moves_time_forward(self):
+    async def test_forward_moves_time_forward_after_sleep_resolves(self):
 
         loop = asyncio.get_event_loop()
+
+        async def sleeper_a():
+            await asyncio.sleep(1)
+
+        async def sleeper_b():
+            await asyncio.sleep(2)
 
         with aiofastforward.FastForward(loop) as forward:
             time_a = loop.time()
@@ -193,8 +199,13 @@ class TestTime(TestCase):
             await forward(2)
             time_c = loop.time()
 
-            self.assertEqual(time_b, time_a + 1)
-            self.assertEqual(time_c, time_b + 2)
+            self.assertEqual(time_b, time_a)
+            self.assertEqual(time_c, time_a)
+
+            await asyncio.ensure_future(sleeper_a())
+            self.assertEqual(loop.time(), 1)
+            await asyncio.ensure_future(sleeper_b())
+            self.assertEqual(loop.time(), 3)
 
     @async_test
     async def test_original_restored_on_exception(self):
@@ -267,6 +278,27 @@ class TestSleep(TestCase):
             self.assertFalse(at_1.is_set())
 
             await forward(1)
+            await at_1.wait()
+
+    @async_test
+    async def test_out_of_order_forward_sleep_can_resolve_after_yield(self):
+
+        loop = asyncio.get_event_loop()
+        at_0 = asyncio.Event()
+        at_1 = asyncio.Event()
+
+        async def sleeper():
+            await at_0.wait()
+            await asyncio.sleep(1)
+            at_1.set()
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            asyncio.ensure_future(sleeper())
+
+            await forward(1)
+            at_0.set()
+            self.assertFalse(at_1.is_set())
             await at_1.wait()
 
     @async_test
