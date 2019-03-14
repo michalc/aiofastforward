@@ -40,9 +40,9 @@ class FastForward():
 
     async def __call__(self, forward_seconds):
         self._target_time += forward_seconds
-        await self._run()
+        self._run()
 
-    async def _run(self):
+    def _run(self):
         while self._queue.queue and self._queue.queue[0]._when <= self._target_time:
             callback = self._queue.get()
             self._time = callback._when
@@ -71,7 +71,7 @@ class FastForward():
     async def _mocked_sleep(self, delay, result):
         future = asyncio.Future()
         self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
-        await self._run()
+        self._run()
         return await future
 
 
