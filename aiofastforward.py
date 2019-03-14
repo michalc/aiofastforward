@@ -53,9 +53,6 @@ class FastForward():
             if not callback._cancelled:
                 callback._run()
 
-            # Allows the callback to add more to the queue before this loop ends
-            await _yield(self._loop)
-
     def _mocked_call_later(self, delay, callback, *args, context=None):
         when = self._time + delay
         return self._mocked_call_at(when, callback, *args, context=context)
