@@ -69,6 +69,19 @@ class TestCallLater(TestCase):
             self.assertEqual(callback.mock_calls, [call(1), call(0)])
 
     @async_test
+    async def test_callback_called_if_after_forward(self):
+
+        loop = asyncio.get_event_loop()
+
+        with aiofastforward.FastForward(loop) as forward:
+            called = asyncio.Event()
+
+            self.assertFalse(called.is_set())
+            await forward(1)
+            loop.call_later(1, called.set)
+            await called.wait()
+
+    @async_test
     async def test_can_be_cancelled(self):
 
         loop = asyncio.get_event_loop()
