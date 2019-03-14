@@ -28,6 +28,7 @@ class FastForward():
         asyncio.sleep = self._maybe_mocked_sleep
 
         self._queue = queue.PriorityQueue()
+        self._target_time = 0.0
         self._time = 0.0
         return self
 
@@ -38,11 +39,14 @@ class FastForward():
         asyncio.sleep = self._original_sleep
 
     async def __call__(self, forward_seconds):
+        self._target_time += forward_seconds
+        await self._run()
+
+    async def _run(self):
         # Allows recently created tasks to run and schedule a sleep
         await _yield(self._loop)
 
-        target_time = self._time + forward_seconds
-        while self._queue.queue and self._queue.queue[0]._when <= target_time:
+        while self._queue.queue and self._queue.queue[0]._when <= self._target_time:
             callback = self._queue.get()
             self._time = callback._when
 
@@ -51,8 +55,6 @@ class FastForward():
 
             # Allows the callback to add more to the queue before this loop ends
             await _yield(self._loop)
-
-        self._time = target_time
 
     def _mocked_call_later(self, delay, callback, *args, context=None):
         when = self._time + delay
@@ -75,6 +77,7 @@ class FastForward():
     async def _mocked_sleep(self, delay, result):
         future = asyncio.Future()
         self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
+        await self._run()
         return await future
 
 
