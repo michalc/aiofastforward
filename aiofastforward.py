@@ -27,7 +27,7 @@ class FastForward():
         self._loop.time = self._mocked_time
         asyncio.sleep = self._maybe_mocked_sleep
 
-        self._queue = queue.PriorityQueue()
+        self._callbacks_queue = queue.PriorityQueue()
         self._target_time = 0.0
         self._time = 0.0
         return self
@@ -43,8 +43,8 @@ class FastForward():
         self._run()
 
     def _run(self):
-        while self._queue.queue and self._queue.queue[0]._when <= self._target_time:
-            callback = self._queue.get()
+        while self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when <= self._target_time:
+            callback = self._callbacks_queue.get()
             self._time = callback._when
 
             if not callback._cancelled:
@@ -56,7 +56,7 @@ class FastForward():
 
     def _mocked_call_at(self, when, callback, *args, context=None):
         callback = create_callback(when, callback, args, self._loop, context)
-        self._queue.put(callback)
+        self._callbacks_queue.put(callback)
         self._run()
         return callback
 
