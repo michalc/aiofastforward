@@ -52,9 +52,9 @@ callback = Mock()
 with aiofastforward.FastForward(loop) as forward:
     asyncio.ensure_future(sleeper())
 
-    await forward(1)
+    await forward(1)  # Move time forward one second
     self.assertEqual(callback.mock_calls, [])
-    await forward(1)
+    await forward(1)  # Move time forward another second
     self.assertEqual(callback.mock_calls, [call(0)])
 ```
 
@@ -74,9 +74,9 @@ with aiofastforward.FastForward(loop) as forward:
     callback = Mock()
     await schedule_callback(loop, callback)
 
-    await forward(1)
+    await forward(1)  # Move time forward one second
     self.assertEqual(callback.mock_calls, [call(0)])
-    await forward(1)
+    await forward(1)  # Move time forward another second
     self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
 
@@ -97,12 +97,11 @@ with aiofastforward.FastForward(loop) as forward:
     callback = Mock()
     await schedule_callback(loop, callback)
 
-    await forward(1)
+    await forward(1)  # Move time forward one second
     self.assertEqual(callback.mock_calls, [call(0)])
-    await forward(1)
+    await forward(1)  # Move time forward another second
     self.assertEqual(callback.mock_calls, [call(0), call(1)])
 ```
-
 
 ## Differences between aiofastforward.FastForward and [asynctest.ClockedTestCase](https://asynctest.readthedocs.io/en/latest/asynctest.case.html#asynctest.ClockedTestCase)
 
