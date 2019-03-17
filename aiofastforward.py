@@ -27,7 +27,8 @@ class FastForward():
         self._loop.time = self._mocked_time
         asyncio.sleep = self._maybe_mocked_sleep
 
-        self._queue = queue.PriorityQueue()
+        self._callbacks_queue = queue.PriorityQueue()
+        self._forwards_queue = queue.PriorityQueue()
         self._target_time = 0.0
         self._time = 0.0
         return self
@@ -38,17 +39,37 @@ class FastForward():
         self._loop.time = self._original_time
         asyncio.sleep = self._original_sleep
 
-    async def __call__(self, forward_seconds):
+    def __call__(self, forward_seconds):
         self._target_time += forward_seconds
+        acheived_target = asyncio.Event()
+        callback = create_callback(self._target_time, acheived_target.set, (), self._loop, None)
+        self._forwards_queue.put(callback)
         self._run()
+        return acheived_target.wait()
 
     def _run(self):
-        while self._queue.queue and self._queue.queue[0]._when <= self._target_time:
-            callback = self._queue.get()
-            self._time = callback._when
+        # Resolve all forwards strictly before first callback if there is one
+        while \
+                self._callbacks_queue.queue and self._forwards_queue.queue \
+                and self._forwards_queue.queue[0] <  self._callbacks_queue.queue[0]:
+            self._progress_time(self._forwards_queue)
 
-            if not callback._cancelled:
-                callback._run()
+        while self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when <= self._target_time:
+            self._progress_time(self._callbacks_queue)
+
+            # Resolve all forwards at this callback, if no more callbacks at time
+            is_last_callback_at_time = \
+                not self._callbacks_queue.queue or \
+                self._callbacks_queue.queue[0]._when > self._time
+            if is_last_callback_at_time:
+                while self._forwards_queue.queue and self._forwards_queue.queue[0]._when <= self._time:
+                    self._progress_time(self._forwards_queue)
+
+    def _progress_time(self, queue):
+        callback = queue.get()
+        self._time = callback._when
+        if not callback._cancelled:
+            callback._run()
 
     def _mocked_call_later(self, delay, callback, *args, context=None):
         when = self._time + delay
@@ -56,7 +77,7 @@ class FastForward():
 
     def _mocked_call_at(self, when, callback, *args, context=None):
         callback = create_callback(when, callback, args, self._loop, context)
-        self._queue.put(callback)
+        self._callbacks_queue.put(callback)
         self._run()
         return callback
 

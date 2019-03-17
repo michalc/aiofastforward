@@ -35,11 +35,26 @@ class TestCallLater(TestCase):
             loop.call_later(1, callback, 0)
             loop.call_later(1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
-    async def test_is_cumulative(self):
+    async def test_is_cumulative_no_await(self):
+
+        loop = asyncio.get_event_loop()
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            loop.call_later(1, callback, 0)
+            loop.call_later(2, callback, 1)
+
+            forward(1)
+            self.assertEqual(callback.mock_calls, [call(0)])
+            forward(1)
+            self.assertEqual(callback.mock_calls, [call(0), call(1)])
+
+    @async_test
+    async def test_is_cumulative_with_await(self):
 
         loop = asyncio.get_event_loop()
 
@@ -63,9 +78,9 @@ class TestCallLater(TestCase):
             loop.call_later(2, callback, 0)
             loop.call_later(1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(1)])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(1), call(0)])
 
     @async_test
@@ -77,7 +92,7 @@ class TestCallLater(TestCase):
             called = asyncio.Event()
 
             self.assertFalse(called.is_set())
-            await forward(1)
+            forward(1)
             loop.call_later(1, called.set)
             await called.wait()
 
@@ -94,7 +109,7 @@ class TestCallLater(TestCase):
             handle.cancel()
             self.assertEqual(handle._cancelled, True)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [])
 
     @async_test
@@ -134,7 +149,7 @@ class TestCallAt(TestCase):
             loop.call_at(now + 1, callback, 0)
             loop.call_at(now + 1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -148,9 +163,9 @@ class TestCallAt(TestCase):
             loop.call_at(now + 1, callback, 0)
             loop.call_at(now + 2, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -163,9 +178,9 @@ class TestCallAt(TestCase):
             now = loop.time()
             loop.call_at(now + 2, callback, 0)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
 
     @async_test
@@ -191,7 +206,7 @@ class TestTime(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             self.assertTrue(isinstance(loop.time(), float))
-            await forward(1)
+            forward(1)
             self.assertTrue(isinstance(loop.time(), float))
 
     @async_test
@@ -207,9 +222,9 @@ class TestTime(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             time_a = loop.time()
-            await forward(1)
+            forward(1)
             time_b = loop.time()
-            await forward(2)
+            forward(2)
             time_c = loop.time()
 
             self.assertEqual(time_b, time_a)
@@ -219,6 +234,56 @@ class TestTime(TestCase):
             self.assertEqual(loop.time(), 1)
             await asyncio.ensure_future(sleeper_b())
             self.assertEqual(loop.time(), 3)
+
+    @async_test
+    async def test_forward_moves_time_forward_after_forward_awaited(self):
+
+        loop = asyncio.get_event_loop()
+
+        async def sleeper_a():
+            await asyncio.sleep(1)
+
+        async def sleeper_b():
+            await asyncio.sleep(2)
+
+        with aiofastforward.FastForward(loop) as forward:
+            time_a = loop.time()
+            forward_1 = forward(1)
+            time_b = loop.time()
+            forward_3 = forward(2)
+            time_c = loop.time()
+
+            self.assertEqual(time_b, time_a)
+            self.assertEqual(time_c, time_a)
+
+            task_a = asyncio.ensure_future(sleeper_a())
+            await forward_1
+            self.assertEqual(loop.time(), 1)
+            task_b = asyncio.ensure_future(sleeper_b())
+            await forward_3
+            self.assertEqual(loop.time(), 3)
+
+            task_a.cancel()
+            task_b.cancel()
+
+    @async_test
+    async def test_forward_moves_time_forward_after_each_await_even_if_no_exact_callback(self):
+
+        loop = asyncio.get_event_loop()
+
+        async def sleeper():
+            await asyncio.sleep(3)
+
+        with aiofastforward.FastForward(loop) as forward:
+            time_a = loop.time()
+
+            task = asyncio.ensure_future(sleeper())
+            await forward(1)
+            self.assertEqual(loop.time(), time_a + 1)
+            await forward(1)
+            self.assertEqual(loop.time(), time_a + 2)
+
+            task.cancel()
 
     @async_test
     async def test_original_restored_on_exception(self):
@@ -253,22 +318,24 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
 
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
-            await forward(0)
+            forward(0)
             await at_0.wait()
 
-            await forward(0)
+            forward(0)
             self.assertFalse(at_1.is_set())
 
-            await forward(1)
+            forward(1)
             await at_1.wait()
 
-            await forward(1)
+            forward(1)
             self.assertFalse(at_3.is_set())
 
-            await forward(1)
+            forward(1)
             await at_3.wait()
+
+            task.cancel()
 
     @async_test
     async def test_sleep_can_resolve_after_yield(self):
@@ -284,14 +351,16 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             at_0.set()
-            await forward(0)
+            forward(0)
             self.assertFalse(at_1.is_set())
 
-            await forward(1)
+            forward(1)
             await at_1.wait()
+
+            task.cancel()
 
     @async_test
     async def test_out_of_order_forward_sleep_can_resolve_after_yield(self):
@@ -307,12 +376,110 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
-            await forward(1)
+            forward(1)
             at_0.set()
             self.assertFalse(at_1.is_set())
             await at_1.wait()
+
+            task.cancel()
+
+    @async_test
+    async def test_awaiting_forward_blocks_until_time_in_one_call(self):
+
+        loop = asyncio.get_event_loop()
+        at_2 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(1)
+            at_2.set()
+            await asyncio.sleep(1)
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            asyncio.ensure_future(sleeper())
+
+            await forward(2)
+            self.assertTrue(at_2.is_set())
+
+    @async_test
+    async def test_awaiting_forward_blocks_until_time_cumulative(self):
+
+        loop = asyncio.get_event_loop()
+        at_2 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(1)
+            at_2.set()
+            await asyncio.sleep(1)
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            task = asyncio.ensure_future(sleeper())
+
+            await forward(0.2)
+            self.assertFalse(at_2.is_set())
+            await forward(0.2)
+            self.assertFalse(at_2.is_set())
+            await forward(0.2)
+            self.assertFalse(at_2.is_set())
+            await forward(0.2)
+            self.assertFalse(at_2.is_set())
+            await forward(0.2)
+            await at_2.wait()
+
+            task.cancel()
+
+    @async_test
+    async def test_forward_not_blocks_until_await_and_is_cumulative(self):
+
+        loop = asyncio.get_event_loop()
+        at_2 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(1)
+            at_2.set()
+            await asyncio.sleep(1)
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            task = asyncio.ensure_future(sleeper())
+
+            forward(0.2)
+            self.assertFalse(at_2.is_set())
+            forward(0.2)
+            self.assertFalse(at_2.is_set())
+            forward(0.2)
+            self.assertFalse(at_2.is_set())
+            forward(0.2)
+            self.assertFalse(at_2.is_set())
+            await forward(0.2)
+            await at_2.wait()
+
+            task.cancel()
+
+    @async_test
+    async def test_awaiting_forward_blocks_until_time_just_after_sleep(self):
+
+        loop = asyncio.get_event_loop()
+        at_2 = asyncio.Event()
+        at_3 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(1)
+            at_2.set()
+            await asyncio.sleep(1)
+            at_3.set()
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            task = asyncio.ensure_future(sleeper())
+
+            await forward(1.5)
+            self.assertTrue(at_2.is_set())
+            self.assertFalse(at_3.is_set())
+            task.cancel()
 
     @async_test
     async def test_one_call_can_resolve_multiple_sleeps(self):
@@ -326,10 +493,12 @@ class TestSleep(TestCase):
             at_3.set()
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
-            await forward(3)
+            forward(3)
             await at_3.wait()
+
+            task.cancel()
 
     @async_test
     async def test_cancellation(self):
@@ -348,16 +517,16 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             task = asyncio.ensure_future(sleeper())
 
-            await forward(0)
+            forward(0)
             await running.wait()
 
             task.cancel()
 
-            await forward(1)
+            forward(1)
             await cancelled.wait()
 
     @async_test
-    async def test_multiple_calls_can_resolve_multiple_sleeps(self):
+    async def test_multiple_calls_can_resolve_multiple_sleeps_no_await(self):
 
         loop = asyncio.get_event_loop()
         at_4 = asyncio.Event()
@@ -368,12 +537,35 @@ class TestSleep(TestCase):
             at_4.set()
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
+
+            forward(2)
+            self.assertFalse(at_4.is_set())
+            forward(2)
+            await at_4.wait()
+
+            task.cancel()
+
+    @async_test
+    async def test_multiple_calls_can_resolve_multiple_sleeps_with_await(self):
+
+        loop = asyncio.get_event_loop()
+        at_4 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(3)
+            await asyncio.sleep(1)
+            at_4.set()
+
+        with aiofastforward.FastForward(loop) as forward:
+            task = asyncio.ensure_future(sleeper())
 
             await forward(2)
             self.assertFalse(at_4.is_set())
             await forward(2)
             await at_4.wait()
+
+            task.cancel()
 
     @async_test
     async def test_returns_result(self):
@@ -386,10 +578,12 @@ class TestSleep(TestCase):
             result.set_result(value)
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
-            await forward(1)
+            forward(1)
             self.assertEqual(await result, 'value')
+
+            task.cancel()
 
     @async_test
     async def test_original_restored_on_exception(self):
@@ -461,7 +655,7 @@ if contextvars:
                 context_var.set('initial-value')
                 loop.call_later(1, callback)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
@@ -483,7 +677,7 @@ if contextvars:
                 context_var.set('modified-value')
                 loop.call_later(1, callback, context=context)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'modified-value')
@@ -507,7 +701,7 @@ if contextvars:
                 now = loop.time()
                 loop.call_at(now + 1, callback)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
@@ -530,7 +724,7 @@ if contextvars:
                 now = loop.time()
                 loop.call_at(now + 1, callback, context=context)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'modified-value')
