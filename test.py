@@ -253,7 +253,7 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
 
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             forward(0)
             await at_0.wait()
@@ -270,6 +270,8 @@ class TestSleep(TestCase):
             forward(1)
             await at_3.wait()
 
+            task.cancel()
+
     @async_test
     async def test_sleep_can_resolve_after_yield(self):
 
@@ -284,7 +286,7 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             at_0.set()
             forward(0)
@@ -292,6 +294,8 @@ class TestSleep(TestCase):
 
             forward(1)
             await at_1.wait()
+
+            task.cancel()
 
     @async_test
     async def test_out_of_order_forward_sleep_can_resolve_after_yield(self):
@@ -307,12 +311,14 @@ class TestSleep(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             callback = Mock()
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             forward(1)
             at_0.set()
             self.assertFalse(at_1.is_set())
             await at_1.wait()
+
+            task.cancel()
 
     @async_test
     async def test_one_call_can_resolve_multiple_sleeps(self):
@@ -326,10 +332,12 @@ class TestSleep(TestCase):
             at_3.set()
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             forward(3)
             await at_3.wait()
+
+            task.cancel()
 
     @async_test
     async def test_cancellation(self):
@@ -368,12 +376,14 @@ class TestSleep(TestCase):
             at_4.set()
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             forward(2)
             self.assertFalse(at_4.is_set())
             forward(2)
             await at_4.wait()
+
+            task.cancel()
 
     @async_test
     async def test_returns_result(self):
@@ -386,10 +396,12 @@ class TestSleep(TestCase):
             result.set_result(value)
 
         with aiofastforward.FastForward(loop) as forward:
-            asyncio.ensure_future(sleeper())
+            task = asyncio.ensure_future(sleeper())
 
             forward(1)
             self.assertEqual(await result, 'value')
+
+            task.cancel()
 
     @async_test
     async def test_original_restored_on_exception(self):
