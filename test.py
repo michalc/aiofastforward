@@ -511,7 +511,7 @@ class TestSleep(TestCase):
             await cancelled.wait()
 
     @async_test
-    async def test_multiple_calls_can_resolve_multiple_sleeps(self):
+    async def test_multiple_calls_can_resolve_multiple_sleeps_no_await(self):
 
         loop = asyncio.get_event_loop()
         at_4 = asyncio.Event()
@@ -527,6 +527,27 @@ class TestSleep(TestCase):
             forward(2)
             self.assertFalse(at_4.is_set())
             forward(2)
+            await at_4.wait()
+
+            task.cancel()
+
+    @async_test
+    async def test_multiple_calls_can_resolve_multiple_sleeps_with_await(self):
+
+        loop = asyncio.get_event_loop()
+        at_4 = asyncio.Event()
+
+        async def sleeper():
+            await asyncio.sleep(3)
+            await asyncio.sleep(1)
+            at_4.set()
+
+        with aiofastforward.FastForward(loop) as forward:
+            task = asyncio.ensure_future(sleeper())
+
+            await forward(2)
+            self.assertFalse(at_4.is_set())
+            await forward(2)
             await at_4.wait()
 
             task.cancel()
