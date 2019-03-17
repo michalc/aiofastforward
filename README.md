@@ -54,8 +54,9 @@ ClockedTestCase does have an advantage over FastForward, which may be important 
 ```python
 # Production code
 async def sleeper(callback):
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
     callback(0)
+    await asyncio.sleep(2)
 
 # Test code
 from unittest.mock import Mock, call
