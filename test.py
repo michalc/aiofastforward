@@ -221,6 +221,56 @@ class TestTime(TestCase):
             self.assertEqual(loop.time(), 3)
 
     @async_test
+    async def test_forward_moves_time_forward_after_forward_awaited(self):
+
+        loop = asyncio.get_event_loop()
+
+        async def sleeper_a():
+            await asyncio.sleep(1)
+
+        async def sleeper_b():
+            await asyncio.sleep(2)
+
+        with aiofastforward.FastForward(loop) as forward:
+            time_a = loop.time()
+            forward_1 = forward(1)
+            time_b = loop.time()
+            forward_3 = forward(2)
+            time_c = loop.time()
+
+            self.assertEqual(time_b, time_a)
+            self.assertEqual(time_c, time_a)
+
+            task_a = asyncio.ensure_future(sleeper_a())
+            await forward_1
+            self.assertEqual(loop.time(), 1)
+            task_b = asyncio.ensure_future(sleeper_b())
+            await forward_3
+            self.assertEqual(loop.time(), 3)
+
+            task_a.cancel()
+            task_b.cancel()
+
+    @async_test
+    async def test_forward_moves_time_forward_after_each_await_even_if_no_exact_callback(self):
+
+        loop = asyncio.get_event_loop()
+
+        async def sleeper():
+            await asyncio.sleep(3)
+
+        with aiofastforward.FastForward(loop) as forward:
+            time_a = loop.time()
+
+            task = asyncio.ensure_future(sleeper())
+            await forward(1)
+            self.assertEqual(loop.time(), time_a + 1)
+            await forward(1)
+            self.assertEqual(loop.time(), time_a + 2)
+
+            task.cancel()
+
+    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
