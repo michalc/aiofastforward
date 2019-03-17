@@ -38,7 +38,7 @@ class FastForward():
         self._loop.time = self._original_time
         asyncio.sleep = self._original_sleep
 
-    async def __call__(self, forward_seconds):
+    def __call__(self, forward_seconds):
         self._target_time += forward_seconds
         self._run()
 

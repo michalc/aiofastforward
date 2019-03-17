@@ -35,7 +35,7 @@ class TestCallLater(TestCase):
             loop.call_later(1, callback, 0)
             loop.call_later(1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -48,9 +48,9 @@ class TestCallLater(TestCase):
             loop.call_later(1, callback, 0)
             loop.call_later(2, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -63,9 +63,9 @@ class TestCallLater(TestCase):
             loop.call_later(2, callback, 0)
             loop.call_later(1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(1)])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(1), call(0)])
 
     @async_test
@@ -77,7 +77,7 @@ class TestCallLater(TestCase):
             called = asyncio.Event()
 
             self.assertFalse(called.is_set())
-            await forward(1)
+            forward(1)
             loop.call_later(1, called.set)
             await called.wait()
 
@@ -94,7 +94,7 @@ class TestCallLater(TestCase):
             handle.cancel()
             self.assertEqual(handle._cancelled, True)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [])
 
     @async_test
@@ -134,7 +134,7 @@ class TestCallAt(TestCase):
             loop.call_at(now + 1, callback, 0)
             loop.call_at(now + 1, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -148,9 +148,9 @@ class TestCallAt(TestCase):
             loop.call_at(now + 1, callback, 0)
             loop.call_at(now + 2, callback, 1)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
@@ -163,9 +163,9 @@ class TestCallAt(TestCase):
             now = loop.time()
             loop.call_at(now + 2, callback, 0)
 
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [])
-            await forward(1)
+            forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
 
     @async_test
@@ -191,7 +191,7 @@ class TestTime(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             self.assertTrue(isinstance(loop.time(), float))
-            await forward(1)
+            forward(1)
             self.assertTrue(isinstance(loop.time(), float))
 
     @async_test
@@ -207,9 +207,9 @@ class TestTime(TestCase):
 
         with aiofastforward.FastForward(loop) as forward:
             time_a = loop.time()
-            await forward(1)
+            forward(1)
             time_b = loop.time()
-            await forward(2)
+            forward(2)
             time_c = loop.time()
 
             self.assertEqual(time_b, time_a)
@@ -255,19 +255,19 @@ class TestSleep(TestCase):
 
             asyncio.ensure_future(sleeper())
 
-            await forward(0)
+            forward(0)
             await at_0.wait()
 
-            await forward(0)
+            forward(0)
             self.assertFalse(at_1.is_set())
 
-            await forward(1)
+            forward(1)
             await at_1.wait()
 
-            await forward(1)
+            forward(1)
             self.assertFalse(at_3.is_set())
 
-            await forward(1)
+            forward(1)
             await at_3.wait()
 
     @async_test
@@ -287,10 +287,10 @@ class TestSleep(TestCase):
             asyncio.ensure_future(sleeper())
 
             at_0.set()
-            await forward(0)
+            forward(0)
             self.assertFalse(at_1.is_set())
 
-            await forward(1)
+            forward(1)
             await at_1.wait()
 
     @async_test
@@ -309,7 +309,7 @@ class TestSleep(TestCase):
             callback = Mock()
             asyncio.ensure_future(sleeper())
 
-            await forward(1)
+            forward(1)
             at_0.set()
             self.assertFalse(at_1.is_set())
             await at_1.wait()
@@ -328,7 +328,7 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             asyncio.ensure_future(sleeper())
 
-            await forward(3)
+            forward(3)
             await at_3.wait()
 
     @async_test
@@ -348,12 +348,12 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             task = asyncio.ensure_future(sleeper())
 
-            await forward(0)
+            forward(0)
             await running.wait()
 
             task.cancel()
 
-            await forward(1)
+            forward(1)
             await cancelled.wait()
 
     @async_test
@@ -370,9 +370,9 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             asyncio.ensure_future(sleeper())
 
-            await forward(2)
+            forward(2)
             self.assertFalse(at_4.is_set())
-            await forward(2)
+            forward(2)
             await at_4.wait()
 
     @async_test
@@ -388,7 +388,7 @@ class TestSleep(TestCase):
         with aiofastforward.FastForward(loop) as forward:
             asyncio.ensure_future(sleeper())
 
-            await forward(1)
+            forward(1)
             self.assertEqual(await result, 'value')
 
     @async_test
@@ -461,7 +461,7 @@ if contextvars:
                 context_var.set('initial-value')
                 loop.call_later(1, callback)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
@@ -483,7 +483,7 @@ if contextvars:
                 context_var.set('modified-value')
                 loop.call_later(1, callback, context=context)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'modified-value')
@@ -507,7 +507,7 @@ if contextvars:
                 now = loop.time()
                 loop.call_at(now + 1, callback)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
@@ -530,7 +530,7 @@ if contextvars:
                 now = loop.time()
                 loop.call_at(now + 1, callback, context=context)
 
-                await forward(1)
+                forward(1)
 
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'modified-value')
