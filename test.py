@@ -39,7 +39,7 @@ class TestCallLater(TestCase):
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
-    async def test_is_cumulative(self):
+    async def test_is_cumulative_no_await(self):
 
         loop = asyncio.get_event_loop()
 
@@ -51,6 +51,21 @@ class TestCallLater(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
             forward(1)
+            self.assertEqual(callback.mock_calls, [call(0), call(1)])
+
+    @async_test
+    async def test_is_cumulative_with_await(self):
+
+        loop = asyncio.get_event_loop()
+
+        with aiofastforward.FastForward(loop) as forward:
+            callback = Mock()
+            loop.call_later(1, callback, 0)
+            loop.call_later(2, callback, 1)
+
+            await forward(1)
+            self.assertEqual(callback.mock_calls, [call(0)])
+            await forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
     @async_test
