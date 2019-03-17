@@ -28,6 +28,7 @@ class FastForward():
         asyncio.sleep = self._maybe_mocked_sleep
 
         self._callbacks_queue = queue.PriorityQueue()
+        self._forwards_queue = queue.PriorityQueue()
         self._target_time = 0.0
         self._time = 0.0
         return self
@@ -40,15 +41,39 @@ class FastForward():
 
     def __call__(self, forward_seconds):
         self._target_time += forward_seconds
+        acheived_target = asyncio.Event()
+        callback = create_callback(self._target_time, acheived_target.set, (), self._loop, None)
+        self._forwards_queue.put(callback)
         self._run()
+        return acheived_target.wait()
 
     def _run(self):
+        # Resolve all forwards strictly before first callback if there is one
+        while \
+                self._callbacks_queue.queue and self._forwards_queue.queue \
+                and self._forwards_queue.queue[0] <  self._callbacks_queue.queue[0]:
+            callback = self._forwards_queue.get()
+            self._time = callback._when
+            if not callback._cancelled:
+                callback._run()
+
         while self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when <= self._target_time:
             callback = self._callbacks_queue.get()
             self._time = callback._when
 
             if not callback._cancelled:
                 callback._run()
+
+            # Resolve all forwards at this callback, if no more callbacks at time
+            is_last_callback_at_time = \
+                not self._callbacks_queue.queue or \
+                self._callbacks_queue.queue[0] > callback
+            if is_last_callback_at_time:
+                while self._forwards_queue.queue and self._forwards_queue.queue[0]._when <= self._time:
+                    callback = self._forwards_queue.get()
+                    self._time = callback._when
+                    if not callback._cancelled:
+                        callback._run()
 
     def _mocked_call_later(self, delay, callback, *args, context=None):
         when = self._time + delay
