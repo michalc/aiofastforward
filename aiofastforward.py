@@ -1,5 +1,6 @@
 import asyncio
 import queue
+import weakref
 
 try:
     import contextvars
@@ -27,6 +28,10 @@ class FastForward():
         self._loop.time = self._mocked_time
         asyncio.sleep = self._maybe_mocked_sleep
 
+        self._forwards_task = asyncio.Task.current_task()
+        self._task_to_sleep_callback = weakref.WeakKeyDictionary()
+        self._sleep_callback_to_task = weakref.WeakValueDictionary()
+
         self._callbacks_queue = queue.PriorityQueue()
         self._forwards_queue = queue.PriorityQueue()
         self._target_time = 0.0
@@ -47,7 +52,23 @@ class FastForward():
         self._run()
         return acheived_target.wait()
 
+    def _run_callback(self, _):
+        self._run()
+
     def _run(self):
+        # Do nothing if all tasks, except the forwards task, don't have a sleep
+        non_forwards_tasks = [
+            task for task in asyncio.Task.all_tasks()
+            if task != self._forwards_task and not task.done()]  # Not sure if done is needed
+        non_forwards_tasks_without_sleep_callback = [
+            task for task in non_forwards_tasks
+            if task not in self._task_to_sleep_callback
+        ]
+        for task in non_forwards_tasks_without_sleep_callback:
+            task.add_done_callback(self._run_callback)
+        if non_forwards_tasks_without_sleep_callback:
+            return
+
         # Resolve all forwards strictly before first callback if there is one
         while \
                 self._callbacks_queue.queue and self._forwards_queue.queue \
@@ -68,6 +89,12 @@ class FastForward():
     def _progress_time(self, queue):
         callback = queue.get()
         self._time = callback._when
+
+        if callback in self._sleep_callback_to_task:
+            task = self._sleep_callback_to_task[callback]
+            del self._sleep_callback_to_task[callback]
+            del self._task_to_sleep_callback[task]
+
         if not callback._cancelled:
             callback._run()
 
@@ -92,9 +119,12 @@ class FastForward():
 
     async def _mocked_sleep(self, delay, result):
         future = asyncio.Future()
-        self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
+        callback = self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
+        task = asyncio.Task.current_task()
+        self._task_to_sleep_callback[task] = callback
+        self._sleep_callback_to_task[callback] = task
+        self._run()
         return await future
-
 
 def _set_result_unless_cancelled(future, result):
     if not future.cancelled():

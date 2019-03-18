@@ -501,6 +501,52 @@ class TestSleep(TestCase):
             task.cancel()
 
     @async_test
+    async def test_nested_task_correct_time_and_order(self):
+
+        loop = asyncio.get_event_loop()
+        at_1_outer = asyncio.Event()
+        at_1_inner = asyncio.Event()
+        at_1_outer_set_at_inner_0 = None
+        at_1_outer_set_at_inner_1 = None
+        at_1_outer_set_at_inner_2 = None
+        time_inner = None
+        task_inner = None
+        time_outer = None
+
+        async def sleeper_outer():
+            nonlocal task_inner
+            task_inner = asyncio.ensure_future(sleeper_inner())
+            await asyncio.sleep(1)
+            at_1_outer.set()
+
+        async def sleeper_inner():
+            nonlocal time_inner
+            nonlocal at_1_outer_set_at_inner_0
+            nonlocal at_1_outer_set_at_inner_1
+            nonlocal at_1_outer_set_at_inner_2
+
+            at_1_outer_set_at_inner_0 = at_1_outer.is_set()
+            time_inner = loop.time() 
+            await asyncio.sleep(1)
+            at_1_outer_set_at_inner_1 = at_1_outer.is_set()
+            await asyncio.sleep(1)
+            at_1_outer_set_at_inner_2 = at_1_outer.is_set()
+
+        with aiofastforward.FastForward(loop) as forward:
+            task_outer = asyncio.ensure_future(sleeper_outer())
+
+            await forward(2)
+
+            self.assertEqual(time_inner, 0)
+            self.assertEqual(at_1_outer_set_at_inner_0, False)
+            self.assertEqual(at_1_outer_set_at_inner_1, False)
+            self.assertEqual(at_1_outer_set_at_inner_2, True)
+            await at_1_outer.wait()
+
+            task_inner.cancel()
+            task_outer.cancel()
+
+    @async_test
     async def test_cancellation(self):
 
         loop = asyncio.get_event_loop()
