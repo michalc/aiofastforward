@@ -107,7 +107,6 @@ class TestCallLater(TestCase):
             self.assertFalse(called.is_set())
             forward(1)
             loop.call_later(1, called.set)
-            forward(0)
             await called.wait()
 
     @async_test
