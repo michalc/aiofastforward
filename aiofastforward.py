@@ -78,7 +78,6 @@ class FastForward():
     def _mocked_call_at(self, when, callback, *args, context=None):
         callback = create_callback(when, callback, args, self._loop, context)
         self._callbacks_queue.put(callback)
-        self._run()
         return callback
 
     def _mocked_time(self):
@@ -93,6 +92,7 @@ class FastForward():
     async def _mocked_sleep(self, delay, result):
         future = asyncio.Future()
         self._mocked_call_later(delay, _set_result_unless_cancelled, future, result)
+        self._run()
         return await future
 
 
