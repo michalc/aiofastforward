@@ -122,7 +122,7 @@ class TestCallLater(TestCase):
             handle.cancel()
             self.assertEqual(handle._cancelled, True)
 
-            forward(1)
+            await forward(1)
             self.assertEqual(callback.mock_calls, [])
 
     @async_test
