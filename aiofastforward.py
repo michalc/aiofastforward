@@ -31,6 +31,7 @@ class FastForward():
         self._forwards_queue = queue.PriorityQueue()
         self._target_time = 0.0
         self._time = 0.0
+        self._scheduled = False
         return self
 
     def __exit__(self, *_, **__):
@@ -47,16 +48,27 @@ class FastForward():
         self._run()
         return acheived_target.wait()
 
+    def _schedule_run(self):
+        if not self._scheduled:
+            self._scheduled = True
+            self._original_call_at(0, self._run)
+
     def _run(self):
+        self._scheduled = False
         # Resolve all forwards strictly before first callback if there is one
         while \
                 self._callbacks_queue.queue and self._forwards_queue.queue \
                 and self._forwards_queue.queue[0] <  self._callbacks_queue.queue[0]:
             self._progress_time(self._forwards_queue)
 
-        while self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when <= self._target_time:
-            self._progress_time(self._callbacks_queue)
-
+        # Run expired callbacks
+        if self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when <= self._target_time:
+            # Only run the callbacks that expired at this instance, but no more -- they might schedule callbacks on their own
+            t0 = self._callbacks_queue.queue[0]._when
+            while self._callbacks_queue.queue and self._callbacks_queue.queue[0]._when == t0:
+                self._progress_time(self._callbacks_queue)
+            self._schedule_run()
+        else:
             # Resolve all forwards at this callback, if no more callbacks at time
             is_last_callback_at_time = \
                 not self._callbacks_queue.queue or \
@@ -78,7 +90,7 @@ class FastForward():
     def _mocked_call_at(self, when, callback, *args, context=None):
         callback = create_callback(when, callback, args, self._loop, context)
         self._callbacks_queue.put(callback)
-        self._original_call_at(0, self._run)
+        self._schedule_run()
         return callback
 
     def _mocked_time(self):

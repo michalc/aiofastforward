@@ -351,6 +351,37 @@ class TestSleep(TestCase):
             task.cancel()
 
     @async_test
+    async def test_gather(self):
+
+        loop = asyncio.get_event_loop()
+        at_1 = asyncio.Event()
+        at_2 = asyncio.Event()
+
+        async def interval_sleeper():
+            await asyncio.sleep(1)
+            at_1.set()
+            await asyncio.sleep(1)
+            at_2.set()
+
+        async def long_sleeper():
+            await asyncio.sleep(5)
+
+        with aiofastforward.FastForward(loop) as forward:
+
+            tasks = [
+                asyncio.ensure_future(interval_sleeper()),
+                asyncio.ensure_future(long_sleeper()),
+            ]
+
+            forward(5)
+            print("waiting for 1")
+            await at_1.wait()
+            print("waiting for 3")
+            await at_2.wait()
+
+            for task in tasks: task.cancel()
+
+    @async_test
     async def test_sleep_can_resolve_after_yield(self):
 
         loop = asyncio.get_event_loop()
