@@ -31,6 +31,7 @@ class FastForward():
         self._forwards_queue = queue.PriorityQueue()
         self._target_time = 0.0
         self._time = 0.0
+        self._scheduled = False
         return self
 
     def __exit__(self, *_, **__):
@@ -48,20 +49,16 @@ class FastForward():
         return acheived_target.wait()
 
     def _schedule_run(self):
-        self._original_call_at(0, self._run)
+        if not self._scheduled:
+            self._scheduled = True
+            self._original_call_at(0, self._run)
 
     def _run(self):
-        scheduled = False
-        busy = False
+        self._scheduled = False
         for task in self._loop._ready:
-            if task._callback == self._run:
-                scheduled = True
-            else:
-                busy = True
-        if busy:
-            if not scheduled:
+            if task._callback != self._run:
                 self._schedule_run()
-            return
+                return
 
         # Resolve all forwards strictly before first callback if there is one
         while \
