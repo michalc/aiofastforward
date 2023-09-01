@@ -23,6 +23,7 @@ classifiers = [
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-asyncio",
 ]
 
 [project.urls]
