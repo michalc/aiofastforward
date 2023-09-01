@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Fast-forward time in asyncio Python by patching loop.time, loop.call_later, loop.call_at, and asyncio.sleep"
 readme = "README.md"
-requires-python = ">=3.5.0"
+requires-python = ">=3.6.7"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
