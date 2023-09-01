@@ -1,4 +1,6 @@
-# aiofastforward [![CircleCI](https://circleci.com/gh/michalc/aiofastforward.svg?style=svg)](https://circleci.com/gh/michalc/aiofastforward) [![Maintainability](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/maintainability)](https://codeclimate.com/github/michalc/aiofastforward/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/45d56d9e0d1d408f0fd8/test_coverage)](https://codeclimate.com/github/michalc/aiofastforward/test_coverage)
+# aiofastforward
+
+[![PyPI package](https://img.shields.io/pypi/v/aiofastforward?label=PyPI%20package&color=%234c1)](https://pypi.org/project/aiofastforward/) [![Test suite](https://img.shields.io/github/actions/workflow/status/michalc/aiofastforward/test.yml?label=Test%20suite)](https://github.com/michalc/aiofastforward/actions/workflows/test.yml) [![Code coverage](https://img.shields.io/codecov/c/github/michalc/aiofastforward?label=Code%20coverage)](https://app.codecov.io/gh/michalc/aiofastforward)z
 
 Fast-forward time in asyncio Python by patching [loop.call_later](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later), [loop.call_at](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_at), [loop.time](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.time), and [asyncio.sleep](https://docs.python.org/3/library/asyncio-task.html#asyncio.sleep). This allows you to test asynchronous code synchronously.
 
