@@ -29,6 +29,9 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/michalc/aiofastforward"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.hatch.build]
 include = [
   "aiofastforward.py",
