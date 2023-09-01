@@ -15,17 +15,8 @@ from unittest.mock import (
 import aiofastforward
 
 
-def async_test(func):
-    def wrapper(*args, **kwargs):
-        future = func(*args, **kwargs)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(future)
-    return wrapper
-
-
 class TestCallLater(TestCase):
 
-    @async_test
     async def test_concurrent_called_in_order(self):
 
         loop = asyncio.get_event_loop()
@@ -38,7 +29,6 @@ class TestCallLater(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
-    @async_test
     async def test_is_cumulative_no_await(self):
 
         loop = asyncio.get_event_loop()
@@ -53,7 +43,6 @@ class TestCallLater(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
-    @async_test
     async def test_is_cumulative_with_await(self):
 
         loop = asyncio.get_event_loop()
@@ -68,7 +57,6 @@ class TestCallLater(TestCase):
             await forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
-    @async_test
     async def test_correct_order(self):
 
         loop = asyncio.get_event_loop()
@@ -83,7 +71,6 @@ class TestCallLater(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(1), call(0)])
 
-    @async_test
     async def test_zero_correct_order(self):
 
         loop = asyncio.get_event_loop()
@@ -96,7 +83,6 @@ class TestCallLater(TestCase):
             forward(0)
             self.assertEqual(callback.mock_calls, [call(0)])
 
-    @async_test
     async def test_callback_called_if_after_forward(self):
 
         loop = asyncio.get_event_loop()
@@ -109,7 +95,6 @@ class TestCallLater(TestCase):
             loop.call_later(1, called.set)
             await called.wait()
 
-    @async_test
     async def test_can_be_cancelled(self):
 
         loop = asyncio.get_event_loop()
@@ -125,7 +110,6 @@ class TestCallLater(TestCase):
             await forward(1)
             self.assertEqual(callback.mock_calls, [])
 
-    @async_test
     async def test_handle_is_timerhandle(self):
 
         loop = asyncio.get_event_loop()
@@ -135,7 +119,6 @@ class TestCallLater(TestCase):
             handle = loop.call_later(1, callback, 0)
             self.assertTrue(isinstance(handle, asyncio.TimerHandle))
 
-    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
@@ -151,7 +134,6 @@ class TestCallLater(TestCase):
 
 class TestCallAt(TestCase):
 
-    @async_test
     async def test_concurrent_called_in_order(self):
 
         loop = asyncio.get_event_loop()
@@ -165,7 +147,6 @@ class TestCallAt(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
-    @async_test
     async def test_is_cumulative(self):
 
         loop = asyncio.get_event_loop()
@@ -181,7 +162,6 @@ class TestCallAt(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0), call(1)])
 
-    @async_test
     async def test_short_forward_not_trigger_callback(self):
 
         loop = asyncio.get_event_loop()
@@ -196,7 +176,6 @@ class TestCallAt(TestCase):
             forward(1)
             self.assertEqual(callback.mock_calls, [call(0)])
 
-    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
@@ -212,7 +191,6 @@ class TestCallAt(TestCase):
 
 class TestTime(TestCase):
 
-    @async_test
     async def test_time_is_float(self):
 
         loop = asyncio.get_event_loop()
@@ -222,7 +200,6 @@ class TestTime(TestCase):
             forward(1)
             self.assertTrue(isinstance(loop.time(), float))
 
-    @async_test
     async def test_forward_moves_time_forward_after_sleep_resolves(self):
 
         loop = asyncio.get_event_loop()
@@ -248,7 +225,6 @@ class TestTime(TestCase):
             await asyncio.ensure_future(sleeper_b())
             self.assertEqual(loop.time(), 3)
 
-    @async_test
     async def test_forward_moves_time_forward_after_forward_awaited(self):
 
         loop = asyncio.get_event_loop()
@@ -279,7 +255,6 @@ class TestTime(TestCase):
             task_a.cancel()
             task_b.cancel()
 
-    @async_test
     async def test_forward_moves_time_forward_after_each_await_even_if_no_exact_callback(self):
 
         loop = asyncio.get_event_loop()
@@ -298,7 +273,6 @@ class TestTime(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
@@ -314,7 +288,6 @@ class TestTime(TestCase):
 
 class TestSleep(TestCase):
 
-    @async_test
     async def test_is_cumulative(self):
 
         loop = asyncio.get_event_loop()
@@ -350,7 +323,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_sleep_can_resolve_after_yield(self):
 
         loop = asyncio.get_event_loop()
@@ -375,7 +347,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_out_of_order_forward_sleep_can_resolve_after_yield(self):
 
         loop = asyncio.get_event_loop()
@@ -398,7 +369,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_awaiting_forward_blocks_until_time_in_one_call(self):
 
         loop = asyncio.get_event_loop()
@@ -416,7 +386,6 @@ class TestSleep(TestCase):
             await forward(2)
             self.assertTrue(at_2.is_set())
 
-    @async_test
     async def test_awaiting_forward_blocks_until_time_cumulative(self):
 
         loop = asyncio.get_event_loop()
@@ -444,7 +413,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_forward_not_blocks_until_await_and_is_cumulative(self):
 
         loop = asyncio.get_event_loop()
@@ -472,7 +440,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_awaiting_forward_blocks_until_time_just_after_sleep(self):
 
         loop = asyncio.get_event_loop()
@@ -494,7 +461,6 @@ class TestSleep(TestCase):
             self.assertFalse(at_3.is_set())
             task.cancel()
 
-    @async_test
     async def test_one_call_can_resolve_multiple_sleeps(self):
 
         loop = asyncio.get_event_loop()
@@ -513,7 +479,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_cancellation(self):
 
         loop = asyncio.get_event_loop()
@@ -538,7 +503,6 @@ class TestSleep(TestCase):
             forward(1)
             await cancelled.wait()
 
-    @async_test
     async def test_multiple_calls_can_resolve_multiple_sleeps_no_await(self):
 
         loop = asyncio.get_event_loop()
@@ -559,7 +523,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_multiple_calls_can_resolve_multiple_sleeps_with_await(self):
 
         loop = asyncio.get_event_loop()
@@ -580,7 +543,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_returns_result(self):
 
         loop = asyncio.get_event_loop()
@@ -598,7 +560,6 @@ class TestSleep(TestCase):
 
             task.cancel()
 
-    @async_test
     async def test_original_restored_on_exception(self):
 
         loop = asyncio.get_event_loop()
@@ -611,7 +572,6 @@ class TestSleep(TestCase):
 
         self.assertEqual(asyncio.sleep, original_sleep)
 
-    @async_test
     async def test_only_patches_specified_loop(self):
 
         loop = asyncio.get_event_loop()
@@ -653,7 +613,6 @@ if contextvars:
 
     class TestCallLaterContext(TestCase):
 
-        @async_test
         async def test_if_context_not_passed_copy_of_current_context_used(self):
 
             loop = asyncio.get_event_loop()
@@ -673,7 +632,6 @@ if contextvars:
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
 
-        @async_test
         async def test_if_context_passed_is_used(self):
 
             loop = asyncio.get_event_loop()
@@ -698,7 +656,6 @@ if contextvars:
 
     class TestCallAtContext(TestCase):
 
-        @async_test
         async def test_if_context_not_passed_copy_of_current_context_used(self):
 
             loop = asyncio.get_event_loop()
@@ -719,7 +676,6 @@ if contextvars:
                 self.assertEqual(context_var_callback_value, 'initial-value')
                 self.assertEqual(context_var.get(), 'initial-value')
 
-        @async_test
         async def test_if_context_passed_is_used(self):
 
             loop = asyncio.get_event_loop()
